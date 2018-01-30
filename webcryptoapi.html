@@ -1,0 +1,32 @@
+<html>
+<head>
+<meta charset="UTF-8"> 
+<script type="text/javascript" src="./webcryptoapi.js"></script>
+<script type="text/javascript">
+	function encrypt(src, dst) {
+		window.Cypher.encrypt(src.value, function (encrypted) {
+			dst.value = encrypted
+		}, function (err) {
+			alert(err);
+		});
+	}
+	function decrypt(src, dst) {
+		window.Cypher.decrypt(src.value, function (decrypted) {
+			dst.value = decrypted
+		}, function (err) {
+			alert(err);
+		});
+	}
+</script>
+</head>
+<body>
+<form>
+<textarea rows="10" cols="50" name="clear1"></textarea>
+<input type="button" onclick="encrypt(document.getElementsByName('clear1')[0], document.getElementsByName('cypher1')[0])" value="->">
+<textarea rows="10" cols="50" name="cypher1"></textarea></br>
+<textarea rows="10" cols="50" name="clear2"></textarea>
+<input type="button" onclick="decrypt(document.getElementsByName('clear2')[0], document.getElementsByName('cypher2')[0])" value="->">
+<textarea rows="10" cols="50" name="cypher2"></textarea>
+</form>
+</body>
+</html>
