@@ -36,45 +36,25 @@
 
 	Cypher = function() {
 
-		/*------- Automatic iv ---------*/
-		var password = "";
-		do{
-			password = window.prompt("Choose a password less than 8 characters");
-			console.log(password.length);
-			if(password.length < 8){
-				do{
-					password = "0"+password;
-				}while(password.length < 8)
-			}
-		}while(password.length > 8)
-		password = str2ab16(password);
-		this.iv = password;
-
-		/*------- Manual iv ---------*/
-		/*this.iv = window.crypto.getRandomValues(new Uint8Array(16));*/
-
-		this.algo = {name : "AES-CBC", iv : this.iv};
 	}
 
 	Cypher.prototype = {
-		importKey : function (success, error) {
-			// var password = window.prompt("Choose password ?");
-			var self = this;
+		importKey : function (self, success, error) {
+			var password = window.prompt("Choose password ?");
 			window.crypto.subtle.digest(
 			{
 				name: "SHA-256",
 			},
-			this.iv // La donnée type source
+			str2ab16(password) 						// La donnée type source
 			)
 			.then(function(hash) {
 				window.crypto.subtle.importKey(
-					"raw", // format de la clef
+					"raw", 							// format de la clef
 					hash,
-					self.algo,
+					{name : "AES-CBC", iv : self.iv}, // Algo
 					false,
 					["encrypt", "decrypt"]
 				).then(function(key){
-				 	
 				 	success(key);
 				})
 				.catch(function(err){
@@ -87,19 +67,17 @@
 
 		encrypt : function (text, success, err) {
 			var self = this;
-			this.importKey(function(key) {
+			self.iv = window.crypto.getRandomValues(new Uint8Array(16));
+			this.importKey(self, function(key) {
 				window.crypto.subtle.encrypt(
-					self.algo, // Paramètres d'identification de l'algorithme cible
-					key, // clef au format interne générée par generateKey ou importKey
-					str2ab16(self.iv+"|"+text) // Donnée claire au format ArrayBuffer
+					{name : "AES-CBC", iv : self.iv},	// Paramètres d'identification de l'algorithme cible
+					key, 								// clef au format interne générée par generateKey ou importKey
+					str2ab16(text)				 		// Donnée claire au format ArrayBuffer
 				)
 				.then(function(encrypted){
-				// encrypted sont les données chiffrées sous forme d'ArrayBuffer
-
-					
-					var b64 = window.btoa(ab82str(encrypted));
+					// encrypted sont les données chiffrées sous forme d'ArrayBuffer
+					var b64 = window.btoa(self.iv+"|"+ab82str(encrypted));
 					success(b64);
-
 				})
 				.catch(function(err){
 					console.error(err);
@@ -112,23 +90,21 @@
 		
 		decrypt : function (text, success, err) {
 			var self = this;
-			this.importKey(function(key) {
+			b64Decode = window.atob(text);
+			var ivOld = b64Decode.split("|")[0];
+			console.log(ivOld);
+			text = b64Decode.split("|")[1];
+			self.iv = new Uint8Array(ivOld.split(","));
+			this.importKey(self, function(key) {
 				window.crypto.subtle.decrypt(
-					self.algo, 
+					{name : "AES-CBC", iv : self.iv}, 
 					key, 
-					str2ab8(window.atob(text))
+					str2ab8(text)
 				)
 				.then(function(decrypted){
 					/*Données à déchiffrer*/
-					console.log(decrypted);
-					var b64Decode = ab162str(decrypted);
-					/*Deux parties iv|chaine*/
-					console.log(str2ab16(b64Decode.split("|")[0]) );/*
-					if(!= str2ab16(self.vi)){
-						alert("WRONG...");
-					}*/
-					success(b64Decode.split("|")[1]);
-
+					var ret = ab162str(decrypted);
+					success(ret);
 				})
 				.catch(function(err){
 					alert("WRONG PASSWORD");
