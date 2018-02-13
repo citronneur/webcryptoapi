@@ -40,15 +40,76 @@
 
 	Cypher.prototype = {
 		importKey : function (success, err) {
-			
+
+			if(this.key == null){
+				this.key = prompt("Enter key code");
+			}
+
+			window.crypto.subtle.digest(
+				{
+					name: "SHA-256"
+				},
+				str2ab16(this.key)
+			)
+			.then(function(hashedKey){
+				window.crypto.subtle.importKey(
+					"raw",
+					hashedKey,
+					{
+						name: "AES-CBC",
+						length: 256
+					},
+					false,
+					["encrypt", "decrypt"]
+				)
+				.then(function(key){
+					success(key);
+				});
+			})
 		},
 
 		encrypt : function (text, success, err) {
-			
+			var iv = window.crypto.getRandomValues(new Uint8Array(16));
+			Cypher.importKey(
+				function(key){
+					window.crypto.subtle.encrypt(
+						{
+							name: "AES-CBC",
+							iv: iv
+						},
+						key,
+						str2ab16(text)
+					).then(function(result){
+						success(window.btoa(iv + ";" + ab82str(result)))
+					}).catch(function(error){
+						console.log(error);
+					});
+				}
+			);
 		},
 		
 		decrypt : function (data, success, err) {
-			
+			data = window.atob(data);
+			var iv = data.split(";")[0];
+			data = str2ab8(data.replace(iv + ";", ""));
+			iv = new Uint8Array(iv.split(","));
+
+			Cypher.importKey(
+				function(key){
+					window.crypto.subtle.decrypt(
+						{
+							name: "AES-CBC",
+							iv: iv
+						},
+						key,
+						data
+					).then(function(result){
+						success(ab162str(result))
+					}).catch(function(error){
+						console.error(error);
+					})
+				}
+			);
 		}		
 	}
 })();
